@@ -1,8 +1,10 @@
+import 'package:expense_tracker/bar%20graph/bar_graph.dart';
 import 'package:expense_tracker/components/my_list_tile.dart';
 import 'package:expense_tracker/database/expense_database.dart';
 import 'package:expense_tracker/helper/helper_functions.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -123,26 +125,49 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Consumer<ExpenseDatabase>(
       builder: (context, value, child) => Scaffold(
-        floatingActionButton: FloatingActionButton(
-          onPressed: openNewExpenseBox,
-          child: Icon(Icons.add),
-        ),
-        body: ListView.builder(
-          itemCount: value.allExpenses.length,
-          itemBuilder: (context, index) {
-            //get individual expense
-            Expense individualExpense = value.allExpenses[index];
+          appBar: AppBar(
+            title: Text(
+              'Expenses',
+              style: GoogleFonts.oswald(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.green,
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: openNewExpenseBox,
+            backgroundColor: Colors.green,
+            child: Icon(Icons.add),
+          ),
+          body: Column(
+            children: [
+              //GRAPH UI
+              MyBarGraph(monthlySummary: monthlySummary, startMonth: startMonth)
 
-            //return list tile UI
-            return MyListTile(
-              title: individualExpense.name,
-              trailing: formatAmount(individualExpense.amount),
-              onEditPressed: (context) => openEditBox(individualExpense),
-              onDeletePressed: (context) => openDeleteBox(individualExpense),
-            );
-          },
-        ),
-      ),
+              //EXPENSE LIST UI
+              Expanded(
+                child: ListView.builder(
+                  itemCount: value.allExpenses.length,
+                  itemBuilder: (context, index) {
+                    //get individual expense
+                    Expense individualExpense = value.allExpenses[index];
+
+                    //return list tile UI
+                    return MyListTile(
+                      title: individualExpense.name,
+                      trailing: formatAmount(individualExpense.amount),
+                      onEditPressed: (context) =>
+                          openEditBox(individualExpense),
+                      onDeletePressed: (context) =>
+                          openDeleteBox(individualExpense),
+                    );
+                  },
+                ),
+              ),
+            ],
+          )),
     );
   }
 

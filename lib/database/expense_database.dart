@@ -64,4 +64,12 @@ class ExpenseDatabase extends ChangeNotifier {
   }
 
   //  HELPER
+
+  //Calculate total expenses for each month
+  Future<Map<int, double>> calculateMonthTotals() async {
+    //ensure
+  }
+  //Get start month
+
+  //Get start year
 }

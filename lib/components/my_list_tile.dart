@@ -18,39 +18,51 @@ class MyListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Slidable(
-        endActionPane: ActionPane(
-          motion: const StretchMotion(),
-          children: [
-            //setting option
-            SlidableAction(
-              onPressed: onEditPressed,
-              icon: Icons.edit,
-              // label: 'Settings',
-              backgroundColor: Colors.blue,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 7),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: const Color.fromARGB(255, 2, 61, 1),
+              width: 4,
             ),
-
-            //delete option
-            SlidableAction(
-              onPressed: onDeletePressed,
-              icon: Icons.delete,
-              // label: 'Delete',
-              backgroundColor: Colors.red,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-          ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.grey[200],
         ),
-        child: ListTile(
-          title: Text(title),
-          trailing: Text(trailing),
+        child: Slidable(
+          endActionPane: ActionPane(
+            motion: const StretchMotion(),
+            children: [
+              //setting option
+              SlidableAction(
+                onPressed: onEditPressed,
+                icon: Icons.edit,
+                // label: 'Settings',
+                backgroundColor: Colors.blue,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
+                ),
+              ),
+
+              //delete option
+              SlidableAction(
+                onPressed: onDeletePressed,
+                icon: Icons.delete,
+                // label: 'Delete',
+                backgroundColor: Colors.red,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+              ),
+            ],
+          ),
+          child: ListTile(
+            title: Text(title),
+            trailing: Text(trailing),
+          ),
         ),
       ),
     );
