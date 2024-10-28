@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_unnecessary_containers
+
 import 'package:expense_tracker/bar%20graph/bar_graph.dart';
 import 'package:expense_tracker/components/my_list_tile.dart';
 import 'package:expense_tracker/database/expense_database.dart';
@@ -19,11 +21,29 @@ class _HomePageState extends State<HomePage> {
   TextEditingController nameController = TextEditingController();
   TextEditingController amountController = TextEditingController();
 
+  //futures to load graph data & monthly total
+  Future<Map<String, double>>? _monthlyTotalsFuture;
+  Future<double>? _calculateCurrentMonthTotal;
+
   @override
   void initState() {
+    //read db on initial startup
     Provider.of<ExpenseDatabase>(context, listen: false).readExpenses();
 
+    //load futures
+    refreshData();
+
     super.initState();
+  }
+
+  //refresh graph data
+  void refreshData() {
+    _monthlyTotalsFuture = Provider.of<ExpenseDatabase>(context, listen: false)
+        .calculateMonthlyTotals();
+
+    _calculateCurrentMonthTotal =
+        Provider.of<ExpenseDatabase>(context, listen: false)
+            .calculateCurrentMonthTotal();
   }
 
   //open new expense Box
@@ -124,17 +144,55 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Consumer<ExpenseDatabase>(
-      builder: (context, value, child) => Scaffold(
+      builder: (context, value, child) {
+        //get dates
+        int startMonth = value.getStartMonth();
+        int startYear = value.getStartYear();
+        int currentMonth = DateTime.now().month;
+        int currentYear = DateTime.now().year;
+
+        //calculate the number of months since the first month
+        int monthCount = calculateMonthCount(
+          startYear,
+          startMonth,
+          currentMonth,
+          currentYear,
+        );
+        //only display the expenses for thr current month
+        List<Expense> currentMonthExpenses = value.allExpenses.where((expense) {
+          return expense.date.month == currentMonth &&
+              expense.date.year == currentYear;
+        }).toList();
+
+        //return UI
+        return Scaffold(
+          backgroundColor: Colors.grey[350],
           appBar: AppBar(
-            title: Text(
-              'Expenses',
-              style: GoogleFonts.oswald(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            backgroundColor: Colors.transparent,
+            title: FutureBuilder(
+              future: _calculateCurrentMonthTotal,
+              builder: (context, snapshot) {
+                //loaded
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      //total amount
+                      Text('₹' + snapshot.data!.toStringAsFixed(2)),
+
+                      //current month name
+                      Text(getCurrentMonthName()),
+                    ],
+                  );
+                }
+
+                //loading
+                else {
+                  return Text("Loading...");
+                }
+              },
             ),
             centerTitle: true,
-            backgroundColor: Colors.green,
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: openNewExpenseBox,
@@ -144,13 +202,52 @@ class _HomePageState extends State<HomePage> {
           body: Column(
             children: [
               //GRAPH UI
-              MyBarGraph(monthlySummary: monthlySummary, startMonth: startMonth)
+              Expanded(
+                child: FutureBuilder(
+                  future: _monthlyTotalsFuture,
+                  builder: (context, snapshot) {
+                    //data is loaded
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      Map<String, double> monthlyTotals = snapshot.data ?? {};
+
+                      //create the list of monthly summary
+                      List<double> monthlySummary =
+                          List.generate(monthCount, (index) {
+                        //calculate year-month considering startMonth & index
+                        int year = startYear + (startMonth + index) ~/ 12;
+                        int month = (startMonth + index - 1) % 12 + 1;
+
+                        //create the key int he format 'year-month
+
+                        String yearMonthKey = "$year-$month";
+
+                        //return the total
+                        return monthlyTotals[yearMonthKey] ?? 0.0;
+                      });
+
+                      return MyBarGraph(
+                          monthlySummary: monthlySummary,
+                          startMonth: startMonth);
+                    }
+
+                    //loading...
+                    else {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                  },
+                ),
+              ),
 
               //EXPENSE LIST UI
               Expanded(
                 child: ListView.builder(
                   itemCount: value.allExpenses.length,
                   itemBuilder: (context, index) {
+                    //reverse the inedex to show the latest expense first
+                    int reversedIndex = currentMonthExpenses.length - 1 - index;
+
                     //get individual expense
                     Expense individualExpense = value.allExpenses[index];
 
@@ -167,7 +264,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ],
-          )),
+          ),
+        );
+      },
     );
   }
 
@@ -206,8 +305,8 @@ class _HomePageState extends State<HomePage> {
           //save to db
           await context.read<ExpenseDatabase>().createNewExpense(newExpense);
 
-          // Refresh the list
-          setState(() {});
+          // Refresh graph
+          refreshData();
 
           //clear controllers
           nameController.clear();
@@ -250,7 +349,17 @@ class _HomePageState extends State<HomePage> {
           await context
               .read<ExpenseDatabase>()
               .updateExpense(existingId, updatedExpense);
+
+          // Refresh graph
+          refreshData();
+
+          //clear controllers
+          nameController.clear();
+          amountController.clear();
         }
+        //clear controllers
+        nameController.clear();
+        amountController.clear();
       },
       child: const Text("Save"),
     );
@@ -265,6 +374,13 @@ class _HomePageState extends State<HomePage> {
 
         //delete the expense
         await context.read<ExpenseDatabase>().deleteExpense(id);
+
+        // Refresh graph
+        refreshData();
+
+        //clear controllers
+        nameController.clear();
+        amountController.clear();
       },
       child: const Text("Delete"),
     );

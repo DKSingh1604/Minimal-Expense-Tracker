@@ -66,10 +66,72 @@ class ExpenseDatabase extends ChangeNotifier {
   //  HELPER
 
   //Calculate total expenses for each month
-  Future<Map<int, double>> calculateMonthTotals() async {
-    //ensure
+  Future<Map<String, double>> calculateMonthlyTotals() async {
+    //ensure the expenses are read from the db
+    await readExpenses();
+
+    //create a map to keep track of total expenses per month, year
+    Map<String, double> monthlyTotals = {};
+
+    //iterate over all expenses
+    for (var expense in _allExpenses) {
+      //extract the year &  month from the date of the expense
+      String yearMonth = "${expense.date.year}-${expense.date.month}";
+
+      //if the year-month is not yet in the map, initializa to 0
+      if (!monthlyTotals.containsKey(yearMonth)) {
+        monthlyTotals[yearMonth] = 0;
+      }
+
+      //add the expense amount to the total for the month
+      monthlyTotals[yearMonth] = monthlyTotals[yearMonth]! + expense.amount;
+    }
+    return monthlyTotals;
   }
+
+  //calculate current month total
+  Future<double> calculateCurrentMonthTotal() async {
+    //ensure the expenses are read from the db
+    await readExpenses();
+
+    //get current month, year
+    int currentMonth = DateTime.now().month;
+    int currentYear = DateTime.now().year;
+
+    //filter the expenses to include only those for this month this year
+    List<Expense> currentMonthExpenses = _allExpenses.where((expense) {
+      return expense.date.month == currentMonth &&
+          expense.date.year == currentYear;
+    }).toList();
+    //calculate total amount for the current month
+    double total =
+        currentMonthExpenses.fold(0, (sum, expense) => sum + expense.amount);
+    return total;
+  }
+
   //Get start month
+  int getStartMonth() {
+    if (_allExpenses.isEmpty) {
+      return DateTime.now().month;
+    }
+    //sort the expenses by date
+    _allExpenses.sort(
+      (a, b) => a.date.compareTo(b.date),
+    );
+
+    return _allExpenses.first.date.month;
+  }
 
   //Get start year
+  int getStartYear() {
+    if (_allExpenses.isEmpty) {
+      return DateTime.now().year;
+    }
+    //sort the expenses by date
+    _allExpenses.sort(
+      (a, b) => a.date.compareTo(b.date),
+    );
+
+    return _allExpenses.first.date.year;
+  }
 }
